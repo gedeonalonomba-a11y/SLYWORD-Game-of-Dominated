@@ -1,0 +1,9 @@
+(function(){
+let music=null,ctx=null,gain=null,master=1;const path=n=>'assets/audio/'+n+(n==='main-theme'?'.ogg':'.wav');
+function ensureCtx(){if(ctx)return;try{ctx=new (window.AudioContext||window.webkitAudioContext)();gain=ctx.createGain();gain.connect(ctx.destination);gain.gain.value=master}catch(e){}}
+SLY.Audio={
+ init(){ensureCtx();music=new Audio(path('main-theme'));music.loop=true;music.preload='auto';music.setAttribute('playsinline','');document.addEventListener('pointerdown',()=>this.sync(),{once:true});},
+ sync(){const s=SLY.State.get();if(!music)return;music.volume=s.settings.muted?0:s.settings.music/100; if(!s.settings.muted&&document.getElementById('game')?.classList.contains('active'))music.play().catch(()=>{});},
+ play(n){const s=SLY.State.get();if(s.settings.muted||s.settings.sfx<=0)return;const a=new Audio(path(n));a.volume=s.settings.sfx/100;a.play().catch(()=>{});ensureCtx();if(ctx&&ctx.state==='suspended')ctx.resume(); if(ctx){const now=ctx.currentTime,o=ctx.createOscillator(),g=ctx.createGain();const map={click:[520,.045,'sine'],notify:[720,.12,'triangle'],money:[880,.18,'sine'],success:[660,.12,'sine'],tech:[540,.2,'triangle'],production:[180,.13,'sawtooth'],hire:[420,.16,'triangle'],mission:[110,.22,'sawtooth'],fail:[150,.2,'square']};const [f,d,w]=map[n]||[400,.08,'sine'];o.type=w;o.frequency.setValueAtTime(f,now);o.frequency.exponentialRampToValueAtTime(f*1.35,now+d);g.gain.setValueAtTime(0,now);g.gain.linearRampToValueAtTime(.045*s.settings.sfx/100,now+.01);g.gain.exponentialRampToValueAtTime(.0001,now+d);o.connect(g);g.connect(ctx.destination);o.start(now);o.stop(now+d+.02);}},
+ toggleMute(){SLY.State.get().settings.muted=!SLY.State.get().settings.muted;this.sync()}
+};})();

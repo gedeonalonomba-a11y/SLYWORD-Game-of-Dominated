@@ -1,0 +1,20 @@
+const fs=require('fs'),vm=require('vm');
+const store=new Map();
+const context={console,Math,Date,setTimeout,clearTimeout,JSON,window:{},localStorage:{getItem:k=>store.get(k)||null,setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},document:{getElementById:()=>({classList:{contains:()=>true}}),addEventListener:()=>{},querySelectorAll:()=>[]},Audio:function(){this.play=()=>Promise.resolve();this.preload='';this.loop=false;this.volume=1},SLY:{}};context.window=context;vm.createContext(context);
+for(const f of ['state','save','audio','economy','production','technology','employees','departments','population','events','missions','investors','animations','systems'])vm.runInContext(fs.readFileSync(__dirname+'/../js/'+f+'.js','utf8'),context,{filename:f+'.js'});
+const S=context.SLY;const assert=(x,m)=>{if(!x)throw new Error(m)};
+let s=S.State.reset(); assert(s.version===7,'v7 state'); assert(Object.keys(s.products).length===5,'products');
+const before=Object.values(s.competitors).map(c=>c.capital); S.Corp.tick(3600000); Object.values(s.competitors).forEach((c,i)=>assert(Number.isFinite(c.capital)&&c.capital<before[i]*1.02,'competitor growth bounded'));
+assert(S.Economy.incomePerHour()>=0,'income finite');
+assert(S.Employees.generate('military').length===6,'six candidates'); const ids=s.candidates.slice(0,3).map(x=>x.id); assert(S.Employees.hire(ids,'military').ok,'hire 3'); assert(s.departments.military.employees.length===3,'department employees');
+assert(S.Tech.unlockMilitary('intel'),'mil tech'); for(const id of ['slychip','aicam','slyos'])assert(S.Tech.unlock(id),'tech '+id);
+while(!s.products.phone.completed){const r=S.Production.advance('phone'); assert(r.ok,'phone production');}
+assert(s.products.phone.completed,'phone completion'); assert(S.Economy.reprice('phone',800),'reprice'); assert(S.Economy.startSale('phone').ok,'sale start'); assert(s.products.phone.activeSale.duration===180000,'180s sale');
+const sale=s.products.phone.activeSale; sale.started-=180000; S.Economy.tick(1000); assert(s.products.phone.activeSale===null,'sale finalizes'); assert(s.stats.sales>0,'sales counted'); assert(s.stats.revenue>0,'revenue counted');
+S.Population.spawn(); assert(s.needs.length===1,'need'); const nid=s.needs[0].id; assert(S.Population.accept(nid),'accept need');
+const inv=S.Investors.generate(); assert(inv,'investor'); assert(S.Investors.accept(inv.id),'accept investor'); assert(s.money>0,'investment credited'); inv.started-=inv.term*1000; S.Investors.tick(); assert(inv.status==='completed','investor contract closes');
+const m=S.Missions.launch('espionnage','NEXORA'); assert(m.ok,'mission'); m.mission.started-=30000; S.Missions.resolve(m.mission); assert(s.reports.length===1,'mission report');
+const a=s.achievements.length; s.stats.sales=2; S.Corp.checkMilestones(); assert(s.achievements.length>=a,'achievement engine');
+assert(S.Save.save(),'save'); const saved=JSON.parse(store.get(S.State.KEY)); assert(saved.version===7,'saved v7'); assert(saved.products.phone.completed===true,'saved product'); S.State.reset(); S.State.load(); assert(S.State.get().products.phone.completed===true,'restore');
+console.log('SLYWORD ULTIMATE V7.1 COMMERCIAL PASS');
+console.log(JSON.stringify({version:s.version,products:Object.keys(s.products).length,milEmployees:s.departments.military.employees.length,phoneCompleted:s.products.phone.completed,sales:s.stats.sales,revenue:s.stats.revenue,investorStatus:inv.status,missionReports:s.reports.length,achievements:s.achievements.length,saveRestored:true},null,2));

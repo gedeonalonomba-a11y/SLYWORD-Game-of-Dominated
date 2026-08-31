@@ -1,0 +1,14 @@
+{
+  "name":"SLYWORD — Game of Dominated",
+  "short_name":"SLYWORD",
+  "description":"Tycoon mobile de stratégie, technologie et empire économique.",
+  "start_url":"./index.html",
+  "display":"standalone",
+  "orientation":"portrait",
+  "background_color":"#040912",
+  "theme_color":"#040912",
+  "icons":[
+    {"src":"assets/icons/icon-192.jpg","sizes":"192x192","type":"image/jpeg"},
+    {"src":"assets/icons/icon-512.jpg","sizes":"512x512","type":"image/jpeg"}
+  ]
+}
